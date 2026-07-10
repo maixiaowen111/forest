@@ -1,10 +1,11 @@
 package com.rymcu.forest.handler;
 
+import com.rymcu.forest.config.RabbitMQConfig;
 import com.rymcu.forest.handler.event.AccountEvent;
 import com.rymcu.forest.mapper.UserMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 import javax.annotation.Resource;
 
@@ -22,7 +23,7 @@ public class AccountHandler {
     @Resource
     private UserMapper userMapper;
 
-    @TransactionalEventListener
+    @RabbitListener(queues = RabbitMQConfig.QUEUE_ACCOUNT)
     public void processAccountLastOnlineTimeEvent(AccountEvent accountEvent) {
         userMapper.updateLastOnlineTimeByAccount(accountEvent.getAccount());
     }

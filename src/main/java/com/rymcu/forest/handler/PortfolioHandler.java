@@ -1,12 +1,12 @@
 package com.rymcu.forest.handler;
 
-import com.alibaba.fastjson.JSON;
+import com.rymcu.forest.config.RabbitMQConfig;
 import com.rymcu.forest.handler.event.PortfolioEvent;
 import com.rymcu.forest.lucene.model.PortfolioLucene;
 import com.rymcu.forest.lucene.util.PortfolioIndexUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * Created on 2024/12/22 20:39.
@@ -19,9 +19,9 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Component
 public class PortfolioHandler {
 
-    @TransactionalEventListener
+    @RabbitListener(queues = RabbitMQConfig.QUEUE_PORTFOLIO)
     public void processPortfolioEvent(PortfolioEvent portfolioEvent) {
-        log.info("执行作品集发布相关事件：[{}]", JSON.toJSONString(portfolioEvent));
+        log.info("执行作品集发布相关事件：[{}]", portfolioEvent);
         switch (portfolioEvent.getOperateType()) {
             case ADD:
                 log.info("执行完成作品集发布相关事件...id={}", portfolioEvent.getIdPortfolio());

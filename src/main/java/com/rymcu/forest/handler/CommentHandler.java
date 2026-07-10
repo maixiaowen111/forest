@@ -1,6 +1,6 @@
 package com.rymcu.forest.handler;
 
-import com.alibaba.fastjson.JSON;
+import com.rymcu.forest.config.RabbitMQConfig;
 import com.rymcu.forest.core.constant.NotificationConstant;
 import com.rymcu.forest.entity.Comment;
 import com.rymcu.forest.handler.event.CommentEvent;
@@ -8,8 +8,8 @@ import com.rymcu.forest.mapper.CommentMapper;
 import com.rymcu.forest.util.Html2TextUtil;
 import com.rymcu.forest.util.NotificationUtils;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 import javax.annotation.Resource;
 import javax.mail.MessagingException;
@@ -29,9 +29,9 @@ public class CommentHandler {
     @Resource
     private CommentMapper commentMapper;
 
-    @TransactionalEventListener
+    @RabbitListener(queues = RabbitMQConfig.QUEUE_COMMENT)
     public void processCommentCreatedEvent(CommentEvent commentEvent) throws MessagingException {
-        log.info(String.format("开始执行评论发布事件：[%s]", JSON.toJSONString(commentEvent)));
+        log.info("开始执行评论发布事件：[{}]", commentEvent);
         String commentContent = commentEvent.getContent();
         int length = commentContent.length();
         if (length > MAX_PREVIEW) {
