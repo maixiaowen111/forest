@@ -13,7 +13,8 @@ import com.rymcu.forest.service.CommentService;
 import com.rymcu.forest.util.Utils;
 import com.rymcu.forest.util.XssUtils;
 import org.apache.commons.lang.StringUtils;
-import org.springframework.context.ApplicationEventPublisher;
+import com.rymcu.forest.config.RabbitMQConfig;
+import com.rymcu.forest.event.EventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,7 +34,7 @@ public class CommentServiceImpl extends AbstractService<Comment> implements Comm
     @Resource
     private ArticleService articleService;
     @Resource
-    private ApplicationEventPublisher applicationEventPublisher;
+    private EventPublisher eventPublisher;
 
     @Override
     public List<CommentDTO> getArticleComments(Integer idArticle) {
@@ -92,7 +93,10 @@ public class CommentServiceImpl extends AbstractService<Comment> implements Comm
 
         String commentContent = comment.getCommentContent();
         if (StringUtils.isNotBlank(commentContent)) {
-            applicationEventPublisher.publishEvent(new CommentEvent(comment.getIdComment(), article.getArticleAuthorId(), comment.getCommentAuthorId(), commentContent, comment.getCommentOriginalCommentId()));
+            eventPublisher.publish(RabbitMQConfig.RK_COMMENT_CREATE,
+                    new CommentEvent(comment.getIdComment(), article.getArticleAuthorId(),
+                            comment.getCommentAuthorId(), commentContent,
+                            comment.getCommentOriginalCommentId()));
         }
         return comment;
     }

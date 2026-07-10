@@ -6,7 +6,8 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
+import com.rymcu.forest.config.RabbitMQConfig;
+import com.rymcu.forest.event.EventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -27,7 +28,7 @@ public class RedisTokenManager implements TokenManager {
     @Autowired
     private StringRedisTemplate redisTemplate;
     @Resource
-    private ApplicationEventPublisher applicationEventPublisher;
+    private EventPublisher eventPublisher;
 
     /**
      * 生成TOKEN
@@ -60,7 +61,7 @@ public class RedisTokenManager implements TokenManager {
         String result = redisTemplate.boundValueOps(key.toString()).get();
         if (StringUtils.isBlank(result)) {
             // 更新最后在线时间
-            applicationEventPublisher.publishEvent(new AccountEvent(model.getUsername()));
+            eventPublisher.publish(RabbitMQConfig.RK_ACCOUNT_LOGIN, new AccountEvent(model.getUsername()));
             redisTemplate.boundValueOps(key.toString()).set(LocalDateTime.now().toString(), JwtConstants.LAST_ONLINE_EXPIRES_MINUTE, TimeUnit.MINUTES);
         }
         return true;

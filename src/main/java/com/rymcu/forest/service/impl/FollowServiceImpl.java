@@ -6,7 +6,8 @@ import com.rymcu.forest.entity.Follow;
 import com.rymcu.forest.handler.event.FollowEvent;
 import com.rymcu.forest.mapper.FollowMapper;
 import com.rymcu.forest.service.FollowService;
-import org.springframework.context.ApplicationEventPublisher;
+import com.rymcu.forest.config.RabbitMQConfig;
+import com.rymcu.forest.event.EventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +23,7 @@ public class FollowServiceImpl extends AbstractService<Follow> implements Follow
     @Resource
     private FollowMapper followMapper;
     @Resource
-    private ApplicationEventPublisher applicationEventPublisher;
+    private EventPublisher eventPublisher;
 
     @Override
     public Boolean isFollow(Integer followingId, String followingType, Long idUser) {
@@ -34,7 +35,9 @@ public class FollowServiceImpl extends AbstractService<Follow> implements Follow
     public Boolean follow(Follow follow, String nickname) {
         int result = followMapper.insertSelective(follow);
         if (result > 0) {
-            applicationEventPublisher.publishEvent(new FollowEvent(follow.getFollowingId(), follow.getFollowerId(), nickname + " 关注了你!"));
+            eventPublisher.publish(RabbitMQConfig.RK_FOLLOW,
+                    new FollowEvent(follow.getFollowingId(), follow.getFollowerId(),
+                            nickname + " 关注了你!"));
         }
         return result > 0;
     }

@@ -19,7 +19,8 @@ import com.rymcu.forest.service.UserService;
 import com.rymcu.forest.util.XssUtils;
 import com.rymcu.forest.web.api.common.UploadController;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.context.ApplicationEventPublisher;
+import com.rymcu.forest.config.RabbitMQConfig;
+import com.rymcu.forest.event.EventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,7 +41,7 @@ public class PortfolioServiceImpl extends AbstractService<Portfolio> implements 
     @Resource
     private ArticleService articleService;
     @Resource
-    private ApplicationEventPublisher applicationEventPublisher;
+    private EventPublisher eventPublisher;
 
     @Override
     public List<PortfolioDTO> findUserPortfoliosByUser(UserDTO userDTO) {
@@ -92,7 +93,10 @@ public class PortfolioServiceImpl extends AbstractService<Portfolio> implements 
             portfolio.setPortfolioDescriptionHtml(XssUtils.filterHtmlCode(portfolio.getPortfolioDescription()));
             portfolioMapper.insertSelective(portfolio);
         }
-        applicationEventPublisher.publishEvent(new PortfolioEvent(portfolio.getIdPortfolio(), portfolio.getPortfolioTitle(), portfolio.getPortfolioDescription(), isUpdate ? OperateType.UPDATE : OperateType.ADD));
+        eventPublisher.publish(RabbitMQConfig.RK_PORTFOLIO,
+                new PortfolioEvent(portfolio.getIdPortfolio(), portfolio.getPortfolioTitle(),
+                        portfolio.getPortfolioDescription(),
+                        isUpdate ? OperateType.UPDATE : OperateType.ADD));
         return portfolio;
     }
 
@@ -170,7 +174,8 @@ public class PortfolioServiceImpl extends AbstractService<Portfolio> implements 
             if (result.equals(0)) {
                 throw new BusinessException("操作失败！");
             }
-            applicationEventPublisher.publishEvent(new PortfolioEvent(idPortfolio, null, null, OperateType.DELETE));
+            eventPublisher.publish(RabbitMQConfig.RK_PORTFOLIO,
+                    new PortfolioEvent(idPortfolio, null, null, OperateType.DELETE));
             return true;
         }
     }

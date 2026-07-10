@@ -22,7 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationEventPublisher;
+import com.rymcu.forest.config.RabbitMQConfig;
+import com.rymcu.forest.event.EventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tk.mybatis.mapper.entity.Condition;
@@ -49,7 +50,7 @@ public class ArticleServiceImpl extends AbstractService<Article> implements Arti
     @Resource
     private NotificationService notificationService;
     @Resource
-    private ApplicationEventPublisher publisher;
+    private EventPublisher eventPublisher;
     @Resource
     private BankAccountService bankAccountService;
 
@@ -59,9 +60,6 @@ public class ArticleServiceImpl extends AbstractService<Article> implements Arti
     private static final int MAX_PREVIEW = 200;
     private static final String DEFAULT_STATUS = "0";
     private static final String DEFAULT_TOPIC_URI = "news";
-
-    @Resource
-    private ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     public List<ArticleDTO> findArticles(ArticleSearchDTO searchDTO) {
@@ -170,7 +168,9 @@ public class ArticleServiceImpl extends AbstractService<Article> implements Arti
         tagService.saveTagArticle(newArticle, articleContentHtml, user.getIdUser());
         if (DEFAULT_STATUS.equals(newArticle.getArticleStatus())) {
             // 文章发布事件
-            publisher.publishEvent(new ArticleEvent(newArticleId, newArticle.getArticleTitle(), isUpdate, notification, user.getNickname(), newArticle.getArticleAuthorId()));
+            eventPublisher.publish(RabbitMQConfig.RK_ARTICLE_POST,
+                    new ArticleEvent(newArticleId, newArticle.getArticleTitle(), isUpdate,
+                            notification, user.getNickname(), newArticle.getArticleAuthorId()));
         }
         return newArticleId;
     }
@@ -185,7 +185,7 @@ public class ArticleServiceImpl extends AbstractService<Article> implements Arti
             // 删除文章
             int result = articleMapper.deleteByPrimaryKey(id);
             if (result > 0) {
-                publisher.publishEvent(new ArticleDeleteEvent(id));
+                eventPublisher.publish(RabbitMQConfig.RK_ARTICLE_DELETE, new ArticleDeleteEvent(id));
             }
             return result;
         } else {
@@ -281,7 +281,8 @@ public class ArticleServiceImpl extends AbstractService<Article> implements Arti
         } else {
             message += "已上架!";
         }
-        applicationEventPublisher.publishEvent(new ArticleStatusEvent(idArticle, article.getArticleAuthorId(), message));
+        eventPublisher.publish(RabbitMQConfig.RK_ARTICLE_STATUS,
+                new ArticleStatusEvent(idArticle, article.getArticleAuthorId(), message));
         return true;
     }
 
